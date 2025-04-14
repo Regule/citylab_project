@@ -24,6 +24,13 @@ ament_target_dependencies(patrol_node rclcpp geometry_msgs sensor_msgs)
 install(TARGETS
    patrol_node
    DESTINATION lib/${PROJECT_NAME}
- )
+)
+
+ install(DIRECTORY
+  launch
+  rviz
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 
 ament_package()
