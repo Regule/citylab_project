@@ -182,7 +182,7 @@ public:
   ~Patrol() = default;
 
 private:
-  constexpr static const float DETECTION_DISTANCE_ = 0.35f;
+  constexpr static const float DETECTION_DISTANCE_ = 0.45f;
   constexpr static const double TIMER_FREQUENCY_ = 10.0;
   constexpr static const int FRONT_HALF_WIDTH_ = 40;
 
