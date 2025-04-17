@@ -32,5 +32,9 @@ install(TARGETS
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(DIRECTORY
+include/
+DESTINATION include
+)
 
 ament_package()
