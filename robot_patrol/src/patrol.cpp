@@ -235,7 +235,7 @@ void Patrol::calculate_and_publish_velocity_() {
 
 void Patrol::laser_callback_(sensor_msgs::msg::LaserScan::SharedPtr msg) {
   lidar_.update(msg);
-  LidarMeasurement front = lidar_.get_closest_range(0, degree_to_radian(60));
+  LidarMeasurement front = lidar_.get_closest_range(0, degree_to_radian(40));
   RCLCPP_INFO(this->get_logger(), "Front - %s", front.str().c_str());
   if (front.state != LidarMeasurement::OK) {
     RCLCPP_WARN(this->get_logger(),
