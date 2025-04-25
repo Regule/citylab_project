@@ -1,15 +1,19 @@
 cmake_minimum_required(VERSION 3.8)
 project(robot_patrol)
 
+# -------------------------------- SET COMPILE OPTIONS ----------------------------------------------
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
+
+
+# ---------------------------------- FIND DEPENDENCIES ----------------------------------------------
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -18,23 +22,45 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# ------------------------------------ LIBRARIES PROCESSING ---------------------------------------
+add_library(${PROJECT_NAME}_lib src/simple_lidar.cpp)
+ament_target_dependencies(${PROJECT_NAME}_lib rclcpp sensor_msgs)
+
+target_include_directories(${PROJECT_NAME}_lib PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+install(
+  TARGETS ${PROJECT_NAME}_lib 
+  EXPORT ${PROJECT_NAME}_lib 
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY
+  include/
+  DESTINATION include
+)
+
+
+# ---------------------------------- EXECUTABLES PROCESSING ---------------------------------------
 add_executable(patrol_node src/patrol.cpp)
 ament_target_dependencies(patrol_node rclcpp geometry_msgs sensor_msgs)
+target_link_libraries(patrol_node ${PROJECT_NAME}_lib )
 
 install(TARGETS
    patrol_node
    DESTINATION lib/${PROJECT_NAME}
 )
 
- install(DIRECTORY
+# ---------------------------------- COPYING ADDITIONAL FOLDERS ------------------------------------
+install(DIRECTORY
   launch
   rviz
   DESTINATION share/${PROJECT_NAME}/
 )
 
-install(DIRECTORY
-include/
-DESTINATION include
-)
 
 ament_package()
