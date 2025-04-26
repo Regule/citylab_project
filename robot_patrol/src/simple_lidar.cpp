@@ -125,4 +125,37 @@ LidarMeasurement SimpleLidar::get_farthest_range(float angle,
   }
   return measurement;
 }
+LidarMeasurement SimpleLidar::get_sum(float angle, float cone_size) const {
+  LidarMeasurement measurement;
+  int initial_sample =
+      static_cast<int>((angle - cone_size / 2 - cfg_->angle_min) / cfg_->step);
+  int end_sample =
+      static_cast<int>((angle + cone_size / 2 - cfg_->angle_min) / cfg_->step) +
+      1;
+  if (initial_sample < 0 || initial_sample + end_sample > cfg_->sample_count) {
+    measurement.state = LidarMeasurement::OUT_OF_RANGE;
+    return measurement;
+  }
+  float sum = 0.0f;
+  bool readout_valid = false;
+  for (int idx = initial_sample; idx < end_sample; ++idx) {
+    if (std::isnan(scan_[idx]) || std::isinf(scan_[idx]))
+      continue;
+    readout_valid = true;
+    sum += scan_[idx];
+  }
+  if (readout_valid) {
+    measurement.state = LidarMeasurement::OK;
+    measurement.distance = sum;
+    measurement.angle = angle;
+  } else {
+    measurement.state = LidarMeasurement::ERROR;
+  }
+  return measurement;
+}
+
+float SimpleLidar::degree_to_radian(float degree) {
+  return degree * 0.0174532925f;
+}
+
 } // namespace citylab

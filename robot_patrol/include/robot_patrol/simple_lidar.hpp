@@ -35,6 +35,9 @@ public:
 
   LidarMeasurement get_closest_range(float angle, float cone_size) const;
   LidarMeasurement get_farthest_range(float angle, float cone_size) const;
+  LidarMeasurement get_sum(float angle, float cone_size) const;
+
+  static float degree_to_radian(float degree);
 
 private:
   std::unique_ptr<LidarConfig> cfg_;
