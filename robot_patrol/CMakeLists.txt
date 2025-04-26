@@ -58,10 +58,15 @@ target_link_libraries(direction_service_node ${PROJECT_NAME}_lib )
 add_executable(direction_service_test src/test_service.cpp)
 ament_target_dependencies(direction_service_test rclcpp sensor_msgs robot_patrol_msgs)
 
+add_executable(patrol_with_service_node src/patrol_with_service.cpp)
+ament_target_dependencies(patrol_with_service_node rclcpp geometry_msgs sensor_msgs robot_patrol_msgs)
+target_link_libraries(patrol_with_service_node ${PROJECT_NAME}_lib )
+
 install(TARGETS
    patrol_node
    direction_service_node
    direction_service_test
+   patrol_with_service_node
    DESTINATION lib/${PROJECT_NAME}
 )
 
