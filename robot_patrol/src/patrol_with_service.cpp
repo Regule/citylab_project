@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <string>
 
 using namespace citylab;
 using GetDirection = robot_patrol_msgs::srv::GetDirection;
@@ -38,6 +39,8 @@ public:
   Status get_status() const noexcept;
   Direction get_direction() const noexcept;
   bool ready() const noexcept;
+
+  static std::string direction_to_str(Direction dir);
 
 private:
   rclcpp::Client<GetDirection>::SharedPtr client_;
@@ -111,7 +114,7 @@ void DirectionClient::response_callback_(
     direction_ = LEFT;
   } else if (response->direction == "right") {
     direction_ = RIGHT;
-  } else if (response->direction == "center") {
+  } else if (response->direction == "forward") {
     direction_ = CENTER;
   } else {
     direction_ = UNKNOWN;
@@ -129,6 +132,21 @@ DirectionClient::Direction DirectionClient::get_direction() const noexcept {
 
 bool DirectionClient::ready() const noexcept {
   return status_ == INITIALIZED || status_ == DONE;
+}
+
+std::string DirectionClient::direction_to_str(DirectionClient::Direction dir) {
+  switch (dir) {
+  case LEFT:
+    return std::string("left");
+  case CENTER:
+    return std::string("center");
+  case RIGHT:
+    return std::string("right");
+  case UNKNOWN:
+    return std::string("unnknown");
+  default:
+    return std::string("direction_to_str - enum value error");
+  }
 }
 
 //============================================================================================
@@ -191,6 +209,10 @@ void Patrol::calculate_and_publish_velocity_() {
     velocity.angular.z = 0.0;
   } else if (direction_client_.get_status() == DirectionClient::DONE) {
     velocity.linear.x = 0.1;
+    RCLCPP_INFO(
+        this->get_logger(), "Moving to direction %s",
+        DirectionClient::direction_to_str(direction_client_.get_direction())
+            .c_str());
     switch (direction_client_.get_direction()) {
     case DirectionClient::CENTER:
       velocity.angular.z = 0.0;
@@ -199,7 +221,7 @@ void Patrol::calculate_and_publish_velocity_() {
       velocity.angular.z = 0.5;
       break;
     case DirectionClient::RIGHT:
-      velocity.angular.z = 0.5;
+      velocity.angular.z = -0.5;
       break;
     default:
       velocity.linear.x = 0.0;
@@ -210,6 +232,10 @@ void Patrol::calculate_and_publish_velocity_() {
     if (direction_client_.get_status() == DirectionClient::IN_PROGRESS) {
       RCLCPP_INFO(this->get_logger(),
                   "Waiting for direction service response.");
+    } else {
+      RCLCPP_WARN(
+          this->get_logger(),
+          "Obstacle detected and unable to call for direction service.");
     }
     velocity.linear.x = 0.0;
     velocity.angular.z = 0.0;
@@ -233,10 +259,14 @@ void Patrol::laser_callback_(sensor_msgs::msg::LaserScan::SharedPtr msg) {
     RCLCPP_INFO(this->get_logger(),
                 "No obstacle in front, setting direction to 0.0.");
     obstacle_in_front_ = false;
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Obstacle detected.");
+    obstacle_in_front_ = true;
   }
 
   if (obstacle_in_front_ && direction_client_.ready()) {
     direction_client_.send_request(msg);
+    RCLCPP_INFO(this->get_logger(), "Request to service sent.");
   }
 }
 
@@ -256,6 +286,7 @@ int main(int argc, char *argv[]) {
   auto patrol_node = std::make_shared<Patrol>();
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(patrol_node);
+  executor.spin();
   rclcpp::shutdown();
   return 0;
 }

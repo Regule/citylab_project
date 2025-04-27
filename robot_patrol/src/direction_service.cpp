@@ -40,33 +40,39 @@ void DirectionServiceNode::spin_callback_(
   SimpleLidar lidar;
   lidar.update(laser);
 
-  static std::vector<std::string> responses = {
-      std::string("right"),
-      std::string("center"),
-      std::string("left"),
-  };
-  int responses_size = static_cast<int>(responses.size());
   float angle_60 = SimpleLidar::degree_to_radian(60);
-  int max_idx = -1;
-  float max_distance = -1.0f;
-  for (int i = 0; i < responses_size; ++i) {
-    LidarMeasurement measurement = lidar.get_sum(angle_60 * (i - 1), angle_60);
-    if (measurement.state != LidarMeasurement::OK)
-      continue;
-    if (measurement.distance > max_distance) {
-      max_distance = measurement.distance;
-      max_idx = i;
-    }
+
+  LidarMeasurement left = lidar.get_sum(angle_60, angle_60);
+  LidarMeasurement center = lidar.get_sum(0.0f, angle_60);
+  LidarMeasurement right = lidar.get_sum(-angle_60, angle_60);
+  if (left.state != LidarMeasurement::OK &&
+      center.state != LidarMeasurement::OK &&
+      right.state != LidarMeasurement::OK) {
+    RCLCPP_WARN(this->get_logger(),
+                "No valid measurement found, setting direction right");
+    response->direction = "right";
+    return;
   }
 
-  if (max_idx == -1) {
-    RCLCPP_WARN(this->get_logger(),
-                "Unable to get proper readout, returning direction \"%s\"",
-                responses[1].c_str());
-    response->direction = responses[1];
-  } else {
-    response->direction = responses[max_idx];
+  if (left.state != LidarMeasurement::OK)
+    left.distance = -1;
+  if (right.state != LidarMeasurement::OK)
+    right.distance = -1;
+  if (center.state != LidarMeasurement::OK)
+    center.distance = -1;
+
+  RCLCPP_INFO(this->get_logger(), "Distance sums <%0.3f %0.3f %0.3f>",
+              left.distance, center.distance, right.distance);
+
+  if (left.distance > center.distance && left.distance > right.distance) {
+    response->direction = "left";
+    return;
   }
+  if (center.distance > left.distance && center.distance > right.distance) {
+    response->direction = "forward";
+    return;
+  }
+  response->direction = "right";
 }
 
 //--------------------------------------------------------------------------------------------
