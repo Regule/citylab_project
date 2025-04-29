@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 
+#include "geometry_msgs/msg/detail/twist__struct.hpp"
 #include "nav_msgs/msg/detail/odometry__struct.hpp"
 #include "rclcpp/logger.hpp"
 #include "rclcpp/logging.hpp"
@@ -53,6 +54,9 @@ private:
 GoToActionServer::GoToActionServer(const rclcpp::NodeOptions &options)
     : Node("distance_action_server", options) {
   using namespace std::placeholders;
+
+  naive_goto_.set_linear_pid(SimplePID(0.3, 0.001, 0.01));
+  naive_goto_.set_angular_pid(SimplePID(0.7, 0.001, 0.01));
 
   this->action_server_ = rclcpp_action::create_server<GoToPose>(
       this, "go_to_pose",
@@ -119,9 +123,8 @@ void GoToActionServer::execute_(
     loop_rate.sleep();
   }
 
-  // Check if goal is done
   if (rclcpp::ok()) {
-    // No need for lock as we read single value
+    velocity_pub_->publish(geometry_msgs::msg::Twist());
     result->status = true;
     goal_handle->succeed(result);
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");

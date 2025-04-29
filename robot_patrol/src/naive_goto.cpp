@@ -1,4 +1,5 @@
 #include "robot_patrol/naive_goto.hpp"
+#include "robot_patrol/utils.hpp"
 
 namespace citylab {
 
@@ -25,34 +26,33 @@ Position2D NaiveGoto::get_cmd_vel() {
   float distance_error = position_.distance(target_);
   float orientation_error = position_.angular_error(target_);
 
-  if (state_ == DIRECTION) {
-    if (abs(direction_error) <= EPSILON) {
-      state_ = DISTANCE;
-    } else {
-      cmd_vel.theta = 0.8 * direction_error;
-      if (abs(cmd_vel.theta) < 0.05) {
-        cmd_vel.theta = 0.1 * direction_error / abs(direction_error);
-      }
-    }
-  }
-
-  if (state_ == DISTANCE) {
-    if (abs(distance_error) <= EPSILON) {
+  // Update state
+  switch (state_) {
+  case DONE:
+    return cmd_vel;
+  case DIRECTION:
+    if (distance_error < EPSILON)
       state_ = ORIENTATION;
-    } else {
-      cmd_vel.x = 0.1;
-    }
+    break;
+  case ORIENTATION:
+    if (orientation_error < EPSILON)
+      state_ = DONE;
+    break;
+  default:
+    state_ = DONE; // Something went wrong
   }
 
-  if (state_ == ORIENTATION) {
-    if (abs(orientation_error) <= EPSILON) {
-      state_ = DONE;
-    } else {
-      cmd_vel.theta = 0.2 * orientation_error;
-      if (abs(cmd_vel.theta) < 0.1) {
-        cmd_vel.theta = 0.1 * orientation_error / abs(orientation_error);
-      }
-    }
+  // Set velocity
+  switch (state_) {
+  case DIRECTION:
+    cmd_vel.theta = angular_pid_.step(direction_error);
+    cmd_vel.x = linear_pid_.step(distance_error);
+    break;
+  case ORIENTATION:
+    cmd_vel.theta = angular_pid_.step(orientation_error);
+    break;
+  default:
+    state_ = DONE; // Something went wrong
   }
 
   RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"),
@@ -61,5 +61,7 @@ Position2D NaiveGoto::get_cmd_vel() {
 
   return cmd_vel;
 }
+void NaiveGoto::set_linear_pid(const SimplePID &pid) { linear_pid_ = pid; }
+void NaiveGoto::set_angular_pid(const SimplePID &pid) { angular_pid_ = pid; }
 
 } // namespace citylab

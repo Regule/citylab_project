@@ -18,6 +18,10 @@ struct Position2D {
   double y;
   double theta;
 
+  Position2D();
+  Position2D(double x_val, double y_val, double theta_val);
+  Position2D(const Position2D &) = default;
+
   static Position2D from_odometry(const nav_msgs::msg::Odometry &msg);
   static Position2D from_pose2D(const geometry_msgs::msg::Pose2D &msg);
 
@@ -28,6 +32,21 @@ struct Position2D {
   double distance(const Position2D &other) const noexcept;
   double direction(const Position2D &other) const noexcept;
   double angular_error(const Position2D &other) const noexcept;
+};
+
+class SimplePID {
+public:
+  SimplePID();
+  SimplePID(double p, double i, double d);
+  void reset();
+  double step(double measurement);
+
+private:
+  double p_;
+  double i_;
+  double d_;
+  double last_;
+  double sum_;
 };
 
 } // namespace citylab

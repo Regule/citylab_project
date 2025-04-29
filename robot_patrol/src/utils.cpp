@@ -2,6 +2,11 @@
 
 namespace citylab {
 
+Position2D::Position2D() : x(0.0), y(0.0), theta(0.0) {}
+
+Position2D::Position2D(double x_val, double y_val, double theta_val)
+    : x(x_val), y(y_val), theta(theta_val) {}
+
 geometry_msgs::msg::Twist Position2D::to_Twist() const {
   geometry_msgs::msg::Twist twist;
   twist.linear.x = x;
@@ -52,6 +57,23 @@ std::string Position2D::to_str() const {
   descritpion << " " << std::setprecision(3) << theta;
   std::string descritpion_str = descritpion.str();
   return descritpion_str;
+}
+
+SimplePID::SimplePID(double p, double i, double d)
+    : p_(p), i_(i), d_(d), last_(0.0), sum_(0.0) {}
+
+SimplePID::SimplePID() : p_(1.0), i_(0.0), d_(0.0), last_(0.0), sum_(0.0) {}
+
+void SimplePID::reset() {
+  last_ = 0.0;
+  sum_ = 0.0;
+}
+
+double SimplePID::step(double error) {
+  sum_ += error;
+  double response = p_ * error + i_ * sum_ + d_ * (error - last_);
+  last_ = error;
+  return response;
 }
 
 } // namespace citylab
