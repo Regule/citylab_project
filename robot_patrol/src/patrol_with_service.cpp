@@ -5,7 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/timer.hpp"
 #include "robot_patrol/simple_lidar.hpp"
-#include "robot_patrol_msgs/srv/get_direction.hpp"
+#include "robot_patrol/srv/get_direction.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include <algorithm>
 #include <cmath>
@@ -13,7 +13,7 @@
 #include <string>
 
 using namespace citylab;
-using GetDirection = robot_patrol_msgs::srv::GetDirection;
+using GetDirection = robot_patrol::srv::GetDirection;
 
 float degree_to_radian(float degree) { return degree * 0.0174532925f; }
 

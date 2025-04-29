@@ -3,14 +3,14 @@
 #include "rclcpp/utilities.hpp"
 
 #include "robot_patrol/simple_lidar.hpp"
-#include "robot_patrol_msgs/srv/get_direction.hpp"
+#include "robot_patrol/srv/get_direction.hpp"
 #include "rosidl_runtime_cpp/traits.hpp"
 #include "sensor_msgs/msg/detail/laser_scan__struct.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include <memory>
 
 using LaserScan = sensor_msgs::msg::LaserScan;
-using GetDirection = robot_patrol_msgs::srv::GetDirection;
+using GetDirection = robot_patrol::srv::GetDirection;
 
 using namespace citylab;
 

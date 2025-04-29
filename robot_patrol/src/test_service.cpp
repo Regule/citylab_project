@@ -3,12 +3,12 @@
 #include "rclcpp/subscription.hpp"
 #include "rclcpp/utilities.hpp"
 
-#include "robot_patrol_msgs/srv/get_direction.hpp"
+#include "robot_patrol/srv/get_direction.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include <memory>
 
 using LaserScan = sensor_msgs::msg::LaserScan;
-using GetDirection = robot_patrol_msgs::srv::GetDirection;
+using GetDirection = robot_patrol::srv::GetDirection;
 
 class DistanceTest : public rclcpp::Node {
 

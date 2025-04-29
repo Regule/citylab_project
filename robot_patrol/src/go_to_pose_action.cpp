@@ -15,11 +15,11 @@
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "robot_patrol/action/go_to_pose.hpp"
 #include "robot_patrol/naive_goto.hpp"
 #include "robot_patrol/utils.hpp"
-#include "robot_patrol_msgs/action/go_to_pose.hpp"
 
-using GoToPose = robot_patrol_msgs::action::GoToPose;
+using GoToPose = robot_patrol::action::GoToPose;
 using GoalHandleGoToPose = rclcpp_action::ServerGoalHandle<GoToPose>;
 using namespace citylab;
 
