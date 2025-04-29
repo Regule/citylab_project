@@ -10,6 +10,7 @@
 #include "geometry_msgs/msg/detail/pose__struct.hpp"
 #include "geometry_msgs/msg/detail/twist__struct.hpp"
 #include "nav_msgs/msg/detail/odometry__struct.hpp"
+#include "rclcpp/logger.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/subscription.hpp"
@@ -96,21 +97,26 @@ public:
   void update_position(const Position2D &position);
   void set_target(const Position2D &target);
   bool target_reached() const;
-  geometry_msgs::msg::Twist get_cmd_vel() const;
+  geometry_msgs::msg::Twist get_cmd_vel();
   Position2D get_position() const;
 
 private:
+  enum State { DIRECTION, DISTANCE, ORIENTATION, DONE };
   constexpr static const float EPSILON = 0.001;
 
   Position2D target_{0.0, 0.0, 0.0};
   Position2D position_{0.0, 0.0, 0.0};
+  State state_ = DONE;
 };
 
 void GoToController::update_position(const Position2D &position) {
   position_ = position;
 }
 
-void GoToController::set_target(const Position2D &target) { target_ = target; }
+void GoToController::set_target(const Position2D &target) {
+  target_ = target;
+  state_ = DIRECTION;
+}
 
 bool GoToController::target_reached() const {
   return (position_.distance(target_) < EPSILON &&
@@ -119,27 +125,49 @@ bool GoToController::target_reached() const {
 
 Position2D GoToController::get_position() const { return position_; }
 
-geometry_msgs::msg::Twist GoToController::get_cmd_vel() const {
+geometry_msgs::msg::Twist GoToController::get_cmd_vel() {
   auto cmd_vel = geometry_msgs::msg::Twist();
 
-  float direction_error = position_.direction(target_);
-  if (direction_error > EPSILON) {
-    cmd_vel.angular.z = 0.5 * direction_error;
-    return cmd_vel;
-  }
-
+  float direction_error = position_.direction(target_) - position_.theta;
   float distance_error = position_.distance(target_);
-  if (distance_error > EPSILON) {
-    cmd_vel.linear.x = 0.3;
-    return cmd_vel;
+  float orientation_error = position_.angular_error(target_);
+
+  if (state_ == DIRECTION) {
+    if (abs(direction_error) <= EPSILON) {
+      state_ = DISTANCE;
+    } else {
+      cmd_vel.angular.z = 0.8 * direction_error;
+      if (abs(cmd_vel.angular.z) < 0.05) {
+        cmd_vel.angular.z = 0.1 * direction_error / abs(direction_error);
+      }
+    }
   }
 
-  float orientation_error = position_.angular_error(target_);
-  if (orientation_error > EPSILON) {
-    cmd_vel.angular.z = 0.2 * orientation_error;
-    return cmd_vel;
+  if (state_ == DISTANCE) {
+    if (abs(distance_error) <= EPSILON) {
+      state_ = ORIENTATION;
+    } else {
+      cmd_vel.linear.x = 0.1;
+    }
   }
-  return cmd_vel; // Stay in place
+
+  if (state_ == ORIENTATION) {
+    if (abs(orientation_error) <= EPSILON) {
+      state_ = DONE;
+    } else {
+      cmd_vel.angular.z = 0.2 * orientation_error;
+      if (abs(cmd_vel.angular.z) < 0.1) {
+        cmd_vel.angular.z = 0.1 * orientation_error / abs(orientation_error);
+      }
+    }
+  }
+
+  RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"),
+              "dir=%.3f dist=%.3f or=%.3f x=%.3f th=%.3f", direction_error,
+              distance_error, orientation_error, cmd_vel.linear.x,
+              cmd_vel.angular.z);
+
+  return cmd_vel;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -174,7 +202,7 @@ GoToActionServer::GoToActionServer(const rclcpp::NodeOptions &options)
   using namespace std::placeholders;
 
   this->action_server_ = rclcpp_action::create_server<GoToPose>(
-      this, "distance_as",
+      this, "go_to_pose",
       std::bind(&GoToActionServer::goal_handler_, this, _1, _2),
       std::bind(&GoToActionServer::cancel_handler_, this, _1),
       std::bind(&GoToActionServer::accepted_handler_, this, _1));
