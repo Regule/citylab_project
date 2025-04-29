@@ -5,10 +5,6 @@
 #include <string>
 #include <thread>
 
-#include "geometry_msgs/msg/detail/point__struct.hpp"
-#include "geometry_msgs/msg/detail/pose2_d__struct.hpp"
-#include "geometry_msgs/msg/detail/pose__struct.hpp"
-#include "geometry_msgs/msg/detail/twist__struct.hpp"
 #include "nav_msgs/msg/detail/odometry__struct.hpp"
 #include "rclcpp/logger.hpp"
 #include "rclcpp/logging.hpp"
@@ -19,156 +15,13 @@
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "robot_patrol/naive_goto.hpp"
+#include "robot_patrol/utils.hpp"
 #include "robot_patrol_msgs/action/go_to_pose.hpp"
 
 using GoToPose = robot_patrol_msgs::action::GoToPose;
 using GoalHandleGoToPose = rclcpp_action::ServerGoalHandle<GoToPose>;
-
-//-------------------------------------------------------------------------------------------
-//                                        POSITION2D
-//-------------------------------------------------------------------------------------------
-struct Position2D {
-  double x;
-  double y;
-  double theta;
-
-  double distance(const Position2D &other) const noexcept;
-  double direction(const Position2D &other) const noexcept;
-  double angular_error(const Position2D &other) const noexcept;
-
-  geometry_msgs::msg::Pose2D to_Pose2D() const;
-  std::string to_str() const;
-
-  static Position2D from_odometry(const nav_msgs::msg::Odometry &msg);
-  static Position2D from_pose2D(const geometry_msgs::msg::Pose2D &msg);
-};
-
-geometry_msgs::msg::Pose2D Position2D::to_Pose2D() const {
-  auto pose = geometry_msgs::msg::Pose2D();
-  pose.x = x;
-  pose.y = y;
-  pose.theta = theta;
-  return pose;
-}
-
-Position2D Position2D::from_odometry(const nav_msgs::msg::Odometry &msg) {
-  Position2D position{msg.pose.pose.position.x, msg.pose.pose.position.y,
-                      msg.pose.pose.orientation.z};
-  return position;
-}
-
-Position2D Position2D::from_pose2D(const geometry_msgs::msg::Pose2D &msg) {
-  Position2D position{msg.x, msg.y, msg.theta};
-  return position;
-}
-
-double Position2D::distance(const Position2D &other) const noexcept {
-  float dx = this->x - other.x;
-  float dy = this->y - other.y;
-  return std::sqrt(dx * dx + dy * dy);
-}
-
-double Position2D::direction(const Position2D &other) const noexcept {
-  return atan2(other.y - this->y, other.x - this->x);
-}
-
-double Position2D::angular_error(const Position2D &other) const noexcept {
-  return other.theta - this->theta;
-}
-
-std::string Position2D::to_str() const {
-  std::stringstream descritpion;
-  descritpion << std::setprecision(3) << x << " " << std::setprecision(3) << y;
-  descritpion << " " << std::setprecision(3) << theta;
-  std::string descritpion_str = descritpion.str();
-  return descritpion_str;
-}
-
-//-------------------------------------------------------------------------------------------
-//                                   GOTO CONTROLLER
-//-------------------------------------------------------------------------------------------
-
-class GoToController {
-public:
-  GoToController() = default;
-  ~GoToController() = default;
-  GoToController(const GoToController &) = delete;
-
-  void update_position(const Position2D &position);
-  void set_target(const Position2D &target);
-  bool target_reached() const;
-  geometry_msgs::msg::Twist get_cmd_vel();
-  Position2D get_position() const;
-
-private:
-  enum State { DIRECTION, DISTANCE, ORIENTATION, DONE };
-  constexpr static const float EPSILON = 0.001;
-
-  Position2D target_{0.0, 0.0, 0.0};
-  Position2D position_{0.0, 0.0, 0.0};
-  State state_ = DONE;
-};
-
-void GoToController::update_position(const Position2D &position) {
-  position_ = position;
-}
-
-void GoToController::set_target(const Position2D &target) {
-  target_ = target;
-  state_ = DIRECTION;
-}
-
-bool GoToController::target_reached() const {
-  return (position_.distance(target_) < EPSILON &&
-          position_.angular_error(target_) < EPSILON);
-}
-
-Position2D GoToController::get_position() const { return position_; }
-
-geometry_msgs::msg::Twist GoToController::get_cmd_vel() {
-  auto cmd_vel = geometry_msgs::msg::Twist();
-
-  float direction_error = position_.direction(target_) - position_.theta;
-  float distance_error = position_.distance(target_);
-  float orientation_error = position_.angular_error(target_);
-
-  if (state_ == DIRECTION) {
-    if (abs(direction_error) <= EPSILON) {
-      state_ = DISTANCE;
-    } else {
-      cmd_vel.angular.z = 0.8 * direction_error;
-      if (abs(cmd_vel.angular.z) < 0.05) {
-        cmd_vel.angular.z = 0.1 * direction_error / abs(direction_error);
-      }
-    }
-  }
-
-  if (state_ == DISTANCE) {
-    if (abs(distance_error) <= EPSILON) {
-      state_ = ORIENTATION;
-    } else {
-      cmd_vel.linear.x = 0.1;
-    }
-  }
-
-  if (state_ == ORIENTATION) {
-    if (abs(orientation_error) <= EPSILON) {
-      state_ = DONE;
-    } else {
-      cmd_vel.angular.z = 0.2 * orientation_error;
-      if (abs(cmd_vel.angular.z) < 0.1) {
-        cmd_vel.angular.z = 0.1 * orientation_error / abs(orientation_error);
-      }
-    }
-  }
-
-  RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"),
-              "dir=%.3f dist=%.3f or=%.3f x=%.3f th=%.3f", direction_error,
-              distance_error, orientation_error, cmd_vel.linear.x,
-              cmd_vel.angular.z);
-
-  return cmd_vel;
-}
+using namespace citylab;
 
 //-------------------------------------------------------------------------------------------
 //                                   DISTANCE ACTION SERVER
@@ -184,7 +37,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;
 
-  GoToController go_to_ctrl_;
+  NaiveGoto naive_goto_;
 
   void update_odometry_(const nav_msgs::msg::Odometry::SharedPtr msg);
 
@@ -215,7 +68,7 @@ GoToActionServer::GoToActionServer(const rclcpp::NodeOptions &options)
 
 void GoToActionServer::update_odometry_(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
-  go_to_ctrl_.update_position(Position2D::from_odometry(*msg));
+  naive_goto_.update_position(Position2D::from_odometry(*msg));
 }
 
 rclcpp_action::GoalResponse
@@ -224,7 +77,7 @@ GoToActionServer::goal_handler_(const rclcpp_action::GoalUUID &uuid,
   Position2D target = Position2D::from_pose2D(goal->goal_pos);
   RCLCPP_INFO(this->get_logger(), "Received goal location %s",
               target.to_str().c_str());
-  go_to_ctrl_.set_target(target);
+  naive_goto_.set_target(target);
   (void)uuid;
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -253,15 +106,15 @@ void GoToActionServer::execute_(
   auto result = std::make_shared<GoToPose::Result>();
   rclcpp::Rate loop_rate(1);
 
-  while (!go_to_ctrl_.target_reached()) {
+  while (!naive_goto_.target_reached()) {
     if (goal_handle->is_canceling()) {
       result->status = false;
       goal_handle->canceled(result);
       RCLCPP_INFO(this->get_logger(), "Goal canceled");
       return;
     }
-    velocity_pub_->publish(go_to_ctrl_.get_cmd_vel());
-    feedback->current_pos = go_to_ctrl_.get_position().to_Pose2D();
+    velocity_pub_->publish(naive_goto_.get_cmd_vel().to_Twist());
+    feedback->current_pos = naive_goto_.get_position().to_Pose2D();
     goal_handle->publish_feedback(feedback);
     loop_rate.sleep();
   }

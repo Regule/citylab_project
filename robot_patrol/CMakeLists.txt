@@ -26,8 +26,8 @@ if(BUILD_TESTING)
 endif()
 
 # ------------------------------------ LIBRARIES PROCESSING ---------------------------------------
-add_library(${PROJECT_NAME}_lib src/simple_lidar.cpp)
-ament_target_dependencies(${PROJECT_NAME}_lib rclcpp sensor_msgs)
+add_library(${PROJECT_NAME}_lib src/simple_lidar.cpp src/utils.cpp src/naive_goto.cpp)
+ament_target_dependencies(${PROJECT_NAME}_lib rclcpp sensor_msgs geometry_msgs nav_msgs)
 
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -66,6 +66,7 @@ target_link_libraries(patrol_with_service_node ${PROJECT_NAME}_lib )
 
 add_executable(go_to_pose_action_node src/go_to_pose_action.cpp)
 ament_target_dependencies(go_to_pose_action_node rclcpp rclcpp_action sensor_msgs geometry_msgs robot_patrol_msgs nav_msgs)
+target_link_libraries(go_to_pose_action_node ${PROJECT_NAME}_lib )
 
 install(TARGETS
    patrol_node

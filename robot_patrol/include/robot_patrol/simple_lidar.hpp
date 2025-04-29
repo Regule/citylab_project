@@ -1,5 +1,5 @@
-#ifndef SIMPLE_LIDAR_HPP
-#define SIMPLE_LIDAR_HPP
+#ifndef CITYLAB_SIMPLE_LIDAR_HPP
+#define CITYLAB_SIMPLE_LIDAR_HPP
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -48,4 +48,4 @@ private:
 
 } // namespace citylab
 
-#endif // SIMPLE_LIDAR_HPP
+#endif // CITYLAB_SIMPLE_LIDAR_HPP
