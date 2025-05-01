@@ -81,12 +81,16 @@ add_executable(go_to_pose_action_node src/go_to_pose_action.cpp)
 ament_target_dependencies(go_to_pose_action_node rclcpp rclcpp_action sensor_msgs geometry_msgs nav_msgs)
 target_link_libraries(go_to_pose_action_node ${PROJECT_NAME}_lib "${cpp_typesupport_target}" )
 
+add_executable(test_position2d src/test_position2d.cpp)
+target_link_libraries(test_position2d ${PROJECT_NAME}_lib "${cpp_typesupport_target}" )
+
 install(TARGETS
    patrol_node
    direction_service_node
    direction_service_test
    patrol_with_service_node
    go_to_pose_action_node
+   test_position2d
    DESTINATION lib/${PROJECT_NAME}
 )
 

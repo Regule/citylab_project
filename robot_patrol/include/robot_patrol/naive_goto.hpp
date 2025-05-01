@@ -21,7 +21,7 @@ public:
 
 private:
   enum State { DIRECTION, DISTANCE, ORIENTATION, DONE };
-  constexpr static const float EPSILON = 0.01;
+  constexpr static const float EPSILON = 0.05;
 
   Position2D target_ = Position2D(0.0, 0.0, 0.0);
   Position2D position_ = Position2D(0.0, 0.0, 0.0);

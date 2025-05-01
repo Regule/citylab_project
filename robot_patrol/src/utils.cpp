@@ -48,7 +48,9 @@ double Position2D::direction(const Position2D &other) const noexcept {
 }
 
 double Position2D::angular_error(const Position2D &other) const noexcept {
-  return other.theta - this->theta;
+  constexpr static const double TWO_PI = 2 * M_PI;
+  double error = normalizeAngle_(other.theta) - normalizeAngle_(this->theta);
+  return error;
 }
 
 std::string Position2D::to_str() const {
@@ -57,6 +59,14 @@ std::string Position2D::to_str() const {
   descritpion << " " << std::setprecision(3) << theta;
   std::string descritpion_str = descritpion.str();
   return descritpion_str;
+}
+
+double Position2D::normalizeAngle_(double angle) {
+  const double TWO_PI = 2 * M_PI;
+  angle = fmod(angle, TWO_PI);
+  if (angle < 0)
+    angle += TWO_PI;
+  return angle;
 }
 
 SimplePID::SimplePID(double p, double i, double d)

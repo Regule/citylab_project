@@ -1,4 +1,5 @@
 #include "robot_patrol/naive_goto.hpp"
+#include "rclcpp/logging.hpp"
 #include "robot_patrol/utils.hpp"
 
 namespace citylab {
@@ -10,12 +11,12 @@ void NaiveGoto::update_position(const Position2D &position) {
 void NaiveGoto::set_target(const Position2D &target) {
   target_ = target;
   state_ = DIRECTION;
+  RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"), "Set state to DIRECTION");
+  angular_pid_.reset();
+  linear_pid_.reset();
 }
 
-bool NaiveGoto::target_reached() const {
-  return (position_.distance(target_) < EPSILON &&
-          position_.angular_error(target_) < EPSILON);
-}
+bool NaiveGoto::target_reached() const { return state_ == DONE; }
 
 Position2D NaiveGoto::get_position() const { return position_; }
 
@@ -31,12 +32,26 @@ Position2D NaiveGoto::get_cmd_vel() {
   case DONE:
     return cmd_vel;
   case DIRECTION:
-    if (distance_error < EPSILON)
+    if (abs(direction_error) < EPSILON) {
+      state_ = DISTANCE;
+      angular_pid_.reset();
+      RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"), "Set state to DISTANCE");
+    }
+    break;
+  case DISTANCE:
+    if (abs(distance_error) < EPSILON) {
       state_ = ORIENTATION;
+      angular_pid_.reset();
+      linear_pid_.reset();
+      RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"), "Set state to ORIENTATION");
+    }
     break;
   case ORIENTATION:
-    if (orientation_error < EPSILON)
+    if (abs(orientation_error) < EPSILON) {
       state_ = DONE;
+      angular_pid_.reset();
+      RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"), "Set state to DONE");
+    }
     break;
   default:
     state_ = DONE; // Something went wrong
@@ -45,6 +60,9 @@ Position2D NaiveGoto::get_cmd_vel() {
   // Set velocity
   switch (state_) {
   case DIRECTION:
+    cmd_vel.theta = angular_pid_.step(direction_error);
+    break;
+  case DISTANCE:
     cmd_vel.theta = angular_pid_.step(direction_error);
     cmd_vel.x = linear_pid_.step(distance_error);
     break;

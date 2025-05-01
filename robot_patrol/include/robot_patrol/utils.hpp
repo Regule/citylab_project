@@ -14,6 +14,7 @@
 
 namespace citylab {
 struct Position2D {
+public:
   double x;
   double y;
   double theta;
@@ -32,6 +33,9 @@ struct Position2D {
   double distance(const Position2D &other) const noexcept;
   double direction(const Position2D &other) const noexcept;
   double angular_error(const Position2D &other) const noexcept;
+
+private:
+  static double normalizeAngle_(double angle);
 };
 
 class SimplePID {

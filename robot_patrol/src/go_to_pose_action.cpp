@@ -79,6 +79,7 @@ rclcpp_action::GoalResponse
 GoToActionServer::goal_handler_(const rclcpp_action::GoalUUID &uuid,
                                 std::shared_ptr<const GoToPose::Goal> goal) {
   Position2D target = Position2D::from_pose2D(goal->goal_pos);
+  target.theta *= 0.0174532925f; // Degrees to radians
   RCLCPP_INFO(this->get_logger(), "Received goal location %s",
               target.to_str().c_str());
   naive_goto_.set_target(target);
