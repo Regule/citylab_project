@@ -16,6 +16,8 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -39,7 +41,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target
 
 # ------------------------------------ LIBRARIES PROCESSING ---------------------------------------
 add_library(${PROJECT_NAME}_lib src/simple_lidar.cpp src/utils.cpp src/naive_goto.cpp)
-ament_target_dependencies(${PROJECT_NAME}_lib rclcpp sensor_msgs geometry_msgs nav_msgs)
+ament_target_dependencies(${PROJECT_NAME}_lib rclcpp sensor_msgs geometry_msgs nav_msgs tf2 tf2_geometry_msgs)
 
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

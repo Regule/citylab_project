@@ -38,6 +38,9 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;
 
+  rclcpp::CallbackGroup::SharedPtr action_callback_group_;
+  rclcpp::CallbackGroup::SharedPtr sensors_callback_group_;
+
   NaiveGoto naive_goto_;
 
   void update_odometry_(const nav_msgs::msg::Odometry::SharedPtr msg);
@@ -54,18 +57,29 @@ private:
 GoToActionServer::GoToActionServer(const rclcpp::NodeOptions &options)
     : Node("distance_action_server", options) {
   using namespace std::placeholders;
+  action_callback_group_ =
+      this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  sensors_callback_group_ =
+      this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 
   naive_goto_.set_linear_pid(SimplePID(0.3, 0.001, 0.01));
   naive_goto_.set_angular_pid(SimplePID(0.7, 0.001, 0.01));
 
+  // rclcpp_action::ServerOptions action_server_options;
+  // action_server_options.callback_group = action_callback_group_;
   this->action_server_ = rclcpp_action::create_server<GoToPose>(
       this, "go_to_pose",
       std::bind(&GoToActionServer::goal_handler_, this, _1, _2),
       std::bind(&GoToActionServer::cancel_handler_, this, _1),
       std::bind(&GoToActionServer::accepted_handler_, this, _1));
+  //      action_server_options);
 
+  rclcpp::SubscriptionOptions sub_options;
+  sub_options.callback_group = sensors_callback_group_;
   odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      "/odom", 10, std::bind(&GoToActionServer::update_odometry_, this, _1));
+      "/odom", 10, std::bind(&GoToActionServer::update_odometry_, this, _1),
+      sub_options);
+
   velocity_pub_ =
       this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 }

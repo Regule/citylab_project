@@ -27,9 +27,19 @@ geometry_msgs::msg::Pose2D Position2D::to_Pose2D() const {
 }
 
 Position2D Position2D::from_odometry(const nav_msgs::msg::Odometry &msg) {
-  Position2D position{msg.pose.pose.position.x, msg.pose.pose.position.y,
-                      msg.pose.pose.orientation.z};
-  return position;
+  Position2D pose;
+
+  pose.x = msg.pose.pose.position.x;
+  pose.y = msg.pose.pose.position.y;
+
+  tf2::Quaternion q(msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                    msg.pose.pose.orientation.z, msg.pose.pose.orientation.w);
+
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+  pose.theta = yaw;
+  return pose;
 }
 
 Position2D Position2D::from_pose2D(const geometry_msgs::msg::Pose2D &msg) {
@@ -48,9 +58,12 @@ double Position2D::direction(const Position2D &other) const noexcept {
 }
 
 double Position2D::angular_error(const Position2D &other) const noexcept {
-  constexpr static const double TWO_PI = 2 * M_PI;
-  double error = normalizeAngle_(other.theta) - normalizeAngle_(this->theta);
-  return error;
+  double angle = theta - other.theta;
+  const double TWO_PI = 2 * M_PI;
+  angle = fmod(angle + M_PI, TWO_PI);
+  if (angle < 0)
+    angle += TWO_PI;
+  return angle - M_PI;
 }
 
 std::string Position2D::to_str() const {

@@ -25,7 +25,7 @@ Position2D NaiveGoto::get_cmd_vel() {
 
   float direction_error = position_.direction(target_) - position_.theta;
   float distance_error = position_.distance(target_);
-  float orientation_error = position_.angular_error(target_);
+  float orientation_error = 0.0 - position_.angular_error(target_);
 
   // Update state
   switch (state_) {
@@ -74,8 +74,9 @@ Position2D NaiveGoto::get_cmd_vel() {
   }
 
   RCLCPP_INFO(rclcpp::get_logger("goto_ctrl"),
-              "dir=%.3f dist=%.3f or=%.3f x=%.3f th=%.3f", direction_error,
-              distance_error, orientation_error, cmd_vel.x, cmd_vel.theta);
+              "pos =%.3f dir=%.3f dist=%.3f or=%.3f x=%.3f th=%.3f",
+              position_.theta, direction_error, distance_error,
+              orientation_error, cmd_vel.x, cmd_vel.theta);
 
   return cmd_vel;
 }
