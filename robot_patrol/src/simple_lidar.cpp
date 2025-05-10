@@ -77,14 +77,8 @@ void SimpleLidar::build_config_(sensor_msgs::msg::LaserScan::SharedPtr msg) {
 LidarMeasurement SimpleLidar::get_closest_range(float angle,
                                                 float cone_size) const {
   LidarMeasurement measurement;
-  int initial_sample =
-      static_cast<int>((angle - cone_size / 2 - cfg_->angle_min) / cfg_->step);
-  int end_sample =
-      static_cast<int>((angle + cone_size / 2 - cfg_->angle_min) / cfg_->step) +
-      1;
-  RCLCPP_INFO(rclcpp::get_logger("lidar_awareness"), "Range %d - %d",
-              initial_sample, end_sample);
-  if (initial_sample < 0 || initial_sample + end_sample > cfg_->sample_count) {
+  std::pair<int, int> range = get_index_range_for_cone_(angle, cone_size);
+  if (range.first > range.second) {
     measurement.state = LidarMeasurement::OUT_OF_RANGE;
     return measurement;
   }
@@ -92,7 +86,7 @@ LidarMeasurement SimpleLidar::get_closest_range(float angle,
   int min_idx = 0;
   float min_val = std::numeric_limits<float>::infinity();
   bool readout_valid = false;
-  for (int idx = initial_sample; idx < end_sample; ++idx) {
+  for (int idx = range.first; idx < range.second; ++idx) {
     if (std::isnan(scan_[idx]))
       continue;
     readout_valid = true;
@@ -114,12 +108,8 @@ LidarMeasurement SimpleLidar::get_closest_range(float angle,
 LidarMeasurement SimpleLidar::get_farthest_range(float angle,
                                                  float cone_size) const {
   LidarMeasurement measurement;
-  int initial_sample =
-      static_cast<int>((angle - cone_size / 2 - cfg_->angle_min) / cfg_->step);
-  int end_sample =
-      static_cast<int>((angle + cone_size / 2 - cfg_->angle_min) / cfg_->step) +
-      1;
-  if (initial_sample < 0 || initial_sample + end_sample > cfg_->sample_count) {
+  std::pair<int, int> range = get_index_range_for_cone_(angle, cone_size);
+  if (range.first > range.second) {
     measurement.state = LidarMeasurement::OUT_OF_RANGE;
     return measurement;
   }
@@ -127,7 +117,7 @@ LidarMeasurement SimpleLidar::get_farthest_range(float angle,
   int min_idx = 0;
   float min_val = 0.0f;
   bool readout_valid = false;
-  for (int idx = initial_sample; idx < end_sample; ++idx) {
+  for (int idx = range.first; idx < range.second; ++idx) {
     if (std::isnan(scan_[idx]) || std::isinf(scan_[idx]))
       continue;
     readout_valid = true;
@@ -147,18 +137,15 @@ LidarMeasurement SimpleLidar::get_farthest_range(float angle,
 }
 LidarMeasurement SimpleLidar::get_sum(float angle, float cone_size) const {
   LidarMeasurement measurement;
-  int initial_sample =
-      static_cast<int>((angle - cone_size / 2 - cfg_->angle_min) / cfg_->step);
-  int end_sample =
-      static_cast<int>((angle + cone_size / 2 - cfg_->angle_min) / cfg_->step) +
-      1;
-  if (initial_sample < 0 || initial_sample + end_sample > cfg_->sample_count) {
+  std::pair<int, int> range = get_index_range_for_cone_(angle, cone_size);
+  if (range.first > range.second) {
     measurement.state = LidarMeasurement::OUT_OF_RANGE;
     return measurement;
   }
+
   float sum = 0.0f;
   bool readout_valid = false;
-  for (int idx = initial_sample; idx < end_sample; ++idx) {
+  for (int idx = range.first; idx < range.second; ++idx) {
     if (std::isnan(scan_[idx]) || std::isinf(scan_[idx]))
       continue;
     readout_valid = true;
@@ -176,6 +163,24 @@ LidarMeasurement SimpleLidar::get_sum(float angle, float cone_size) const {
 
 float SimpleLidar::degree_to_radian(float degree) {
   return degree * 0.0174532925f;
+}
+
+std::pair<int, int>
+SimpleLidar::get_index_range_for_cone_(float angle, float cone_size) const {
+  std::pair<int, int> range;
+  range.first =
+      static_cast<int>((angle - cone_size / 2 - cfg_->angle_min) / cfg_->step);
+  range.second =
+      static_cast<int>((angle + cone_size / 2 - cfg_->angle_min) / cfg_->step) +
+      1;
+  if (angle - cone_size / 2 < cfg_->angle_min ||
+      angle + cone_size / 2 >=
+          cfg_->angle_min + cfg_->step * cfg_->sample_count) {
+    range.first = 0;
+    range.second = -1;
+  }
+
+  return range;
 }
 
 } // namespace citylab

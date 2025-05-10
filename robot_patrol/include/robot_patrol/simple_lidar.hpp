@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <utility>
 
 namespace citylab {
 struct LidarMeasurement {
@@ -57,6 +58,8 @@ private:
   ScanVector scan_;
 
   void build_config_(sensor_msgs::msg::LaserScan::SharedPtr msg);
+  std::pair<int, int> get_index_range_for_cone_(float angle,
+                                                float cone_size) const;
 };
 
 } // namespace citylab
