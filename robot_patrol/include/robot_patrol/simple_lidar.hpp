@@ -5,6 +5,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace citylab {
 struct LidarMeasurement {
@@ -25,6 +26,18 @@ struct LidarConfig {
   std::pair<float, float> range;
 };
 
+class ScanVector {
+public:
+  ScanVector() = default;
+  ~ScanVector() = default;
+  void update(const std::vector<float> updated_scan);
+  void clear();
+  float operator[](int idx) const;
+
+private:
+  std::vector<float> scan_;
+};
+
 class SimpleLidar {
 public:
   SimpleLidar() = default;
@@ -41,7 +54,7 @@ public:
 
 private:
   std::unique_ptr<LidarConfig> cfg_;
-  std::vector<float> scan_;
+  ScanVector scan_;
 
   void build_config_(sensor_msgs::msg::LaserScan::SharedPtr msg);
 };

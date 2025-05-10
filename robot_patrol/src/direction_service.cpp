@@ -61,8 +61,8 @@ void DirectionServiceNode::spin_callback_(
   if (center.state != LidarMeasurement::OK)
     center.distance = -1;
 
-  RCLCPP_INFO(this->get_logger(), "Distance sums <%0.3f %0.3f %0.3f>",
-              left.distance, center.distance, right.distance);
+  RCLCPP_INFO(this->get_logger(), "Distance sums <%s %s %s>",
+              left.str().c_str(), center.str().c_str(), right.str().c_str());
 
   if (left.distance > center.distance && left.distance > right.distance) {
     response->direction = "left";

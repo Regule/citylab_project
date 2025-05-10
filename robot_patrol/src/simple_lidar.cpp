@@ -26,6 +26,26 @@ std::string LidarMeasurement::state_to_str(State state) {
   }
 }
 
+void ScanVector::update(const std::vector<float> updated_scan) {
+  scan_ = updated_scan;
+}
+
+void ScanVector::clear() { scan_.clear(); }
+
+float ScanVector::operator[](int idx) const {
+  int size = static_cast<int>(scan_.size());
+  if (size == 0) {
+    throw std::out_of_range("Attempting to access empty scan vector.");
+  }
+  while (idx < 0) {
+    idx += size;
+  }
+  while (idx >= size) {
+    idx -= size;
+  }
+  return scan_[idx];
+}
+
 SimpleLidar::SimpleLidar(const LidarConfig &cfg) {
   cfg_ = std::make_unique<LidarConfig>(cfg);
 }
@@ -42,7 +62,7 @@ void SimpleLidar::update(sensor_msgs::msg::LaserScan::SharedPtr msg) {
     scan_.clear();
     return;
   }
-  scan_ = msg->ranges;
+  scan_.update(msg->ranges);
 }
 
 void SimpleLidar::build_config_(sensor_msgs::msg::LaserScan::SharedPtr msg) {
