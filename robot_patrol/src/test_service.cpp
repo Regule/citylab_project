@@ -33,6 +33,7 @@ DistanceTest::DistanceTest() : Node("distance_test"), direction_("None") {
   client_ = this->create_client<GetDirection>("direction_service");
   scan_sub_ = this->create_subscription<LaserScan>(
       "scan", 10, std::bind(&DistanceTest::scan_callback_, this, _1));
+  RCLCPP_INFO(this->get_logger(), "Service Client Ready");
 }
 
 bool DistanceTest::is_done() const { return done_; }
@@ -47,6 +48,7 @@ void DistanceTest::scan_callback_(LaserScan::SharedPtr msg) {
 
 void DistanceTest::send_async_request_(LaserScan::SharedPtr msg) {
   using namespace std::chrono_literals;
+  RCLCPP_INFO(this->get_logger(), "Service Request");
   while (!client_->wait_for_service(1s)) {
     if (!rclcpp::ok()) {
       RCLCPP_ERROR(
@@ -77,7 +79,8 @@ void DistanceTest::send_async_request_(LaserScan::SharedPtr msg) {
 void DistanceTest::response_callback_(
     rclcpp::Client<GetDirection>::SharedFuture future) {
   auto response = future.get();
-  RCLCPP_INFO(this->get_logger(), "Response: %s", response->direction.c_str());
+  RCLCPP_INFO(this->get_logger(), "Service Response : %s",
+              response->direction.c_str());
   done_ = true;
 }
 

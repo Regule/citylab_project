@@ -14,8 +14,8 @@ def generate_launch_description():
         # Launch the patrol_node
         Node(
             package='robot_patrol',
-            executable='direction_service_test',
-            name='direction_service_test',
+            executable='direction_service_node',
+            name='direction_service_node',
             output='screen',
             parameters=[],
         ),

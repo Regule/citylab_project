@@ -31,11 +31,13 @@ DirectionServiceNode::DirectionServiceNode() : Node("direction_service") {
   srv_ = create_service<GetDirection>(
       "direction_service",
       std::bind(&DirectionServiceNode::spin_callback_, this, _1, _2));
+  RCLCPP_INFO(this->get_logger(), "Service Server Ready");
 }
 
 void DirectionServiceNode::spin_callback_(
     const std::shared_ptr<GetDirection::Request> request,
     const std::shared_ptr<GetDirection::Response> response) {
+  RCLCPP_INFO(this->get_logger(), "Service Requested");
   LaserScan::SharedPtr laser = std::make_shared<LaserScan>(request->laser_data);
   SimpleLidar lidar;
   lidar.update(laser);
@@ -61,8 +63,7 @@ void DirectionServiceNode::spin_callback_(
   if (center.state != LidarMeasurement::OK)
     center.distance = -1;
 
-  RCLCPP_INFO(this->get_logger(), "Distance sums <%s %s %s>",
-              left.str().c_str(), center.str().c_str(), right.str().c_str());
+  RCLCPP_INFO(this->get_logger(), "Service Completed");
 
   if (left.distance > center.distance && left.distance > right.distance) {
     response->direction = "left";
