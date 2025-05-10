@@ -14,7 +14,7 @@ def generate_launch_description():
     rviz_config_file = os.path.join(
         get_package_share_directory('robot_patrol'),
         'rviz',
-        'patrol_vizualization.rviz'
+        'patrol_vizualization_real_robot.rviz'
     )
 
 
